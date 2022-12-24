@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { ImageGallery } from './ImageGallery/ImageGallery';
 import { Loader } from './Loader/Loader';
 import { SearchBar } from './Searchbar/Searchbar';
@@ -6,63 +6,55 @@ import { api } from '../services/api';
 import { Button } from './Button/Button';
 import { StartTitle, ErrorMessage } from './App.styled';
 
-export class App extends Component {
-  state = {
-    query: '',
-    images: [],
-    isLoading: false,
-    error: null,
-    page: 1,
-    total: 0,
-    status: 'idle',
-  };
+export const App = () => {
+  const [query, setQuery] = useState('');
+  const [images, setImages] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [status, setStatus] = useState('idle');
 
-  handleFormSubmit = query => {
-    if (this.state.query !== query) {
-      this.setState({ query, images: [], page: 1 });
+  const handleFormSubmit = searchQuery => {
+    if (searchQuery !== query) {
+      setQuery(searchQuery);
+      setImages([]);
+      setPage(1);
+      setStatus('idle');
+      setTotal(0);
     }
   };
 
-  componentDidUpdate(_, prevState) {
-    if (
-      prevState.query !== this.state.query ||
-      prevState.page !== this.state.page
-    ) {
-      this.setState({ isLoading: true, error: null });
+  useEffect(() => {
+    if (query) {
+      setIsLoading(true);
       api
-        .fetchImages(this.state.query, this.state.page)
-        .then(images => {
-          this.setState({
-            images: images.hits,
-            total: images.total,
-            status: 'resolved',
-          });
+        .fetchImages(query, page)
+        .then(data => {
+          setImages(images => [...images, ...data.hits]);
+          setTotal(data.total);
+          setStatus('resolved');
         })
-        .catch(error => this.setState({ error }))
-        .finally(() => this.setState({ isLoading: false }));
+        .catch(error => setError(error))
+        .finally(() => setIsLoading(false));
     }
-  }
+  }, [query, page]);
 
-  loadMore = () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-    }));
+  const loadMore = () => {
+    setPage(page => page + 1);
   };
 
-  render() {
-    const { isLoading, query, images, error, status, total } = this.state;
-    return (
-      <>
-        <SearchBar onSubmit={this.handleFormSubmit} />
-        {isLoading && <Loader />}
-        {!query && <StartTitle>Enter what would you like to find</StartTitle>}
-        {error && <ErrorMessage> {error.message}</ErrorMessage>}
-        {status === 'resolved' && <ImageGallery images={images} />}
-        {status === 'resolved' && total === 0 && (
-          <ErrorMessage>Nothing found</ErrorMessage>
-        )}
-        {images.length >= 12 && <Button onClick={this.loadMore} />}
-      </>
-    );
-  }
-}
+  return (
+    <>
+      <SearchBar onSubmit={handleFormSubmit} />
+      {isLoading && <Loader />}
+      {!query && <StartTitle>Enter what would you like to find</StartTitle>}
+      {error && <ErrorMessage> {error.message}</ErrorMessage>}
+      {status === 'resolved' && <ImageGallery images={images} />}
+      {status === 'resolved' && total === 0 && (
+        <ErrorMessage>Nothing found</ErrorMessage>
+      )}
+      {images.length >= 12 && <Button onClick={loadMore} />}
+    </>
+  );
+};

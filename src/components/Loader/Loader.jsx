@@ -11,8 +11,8 @@ export const Loader = () => {
       visible={true}
       ariaLabel="oval-loading"
       secondaryColor="#b3196e"
-      strokeWidth={2}
-      strokeWidthSecondary={2}
+      strokeWidth={4}
+      strokeWidthSecondary={4}
     />
   );
 };
